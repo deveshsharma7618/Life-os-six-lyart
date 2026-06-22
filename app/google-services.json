@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "694971019833",
+    "project_id": "life-os-six-lyart",
+    "storage_bucket": "life-os-six-lyart.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:694971019833:android:de24f922c4c8c754e7d3e8",
+        "android_client_info": {
+          "package_name": "com.deveshsharma.lifeossixlyart"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2grll1VKObqqTNx9yfiwFvvQ1bFT0yKA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
