@@ -23,7 +23,7 @@ import com.deveshsharma.lifeossixlyart.core.presentation.components.SanctuaryCar
 import com.deveshsharma.lifeossixlyart.core.presentation.components.SectionHeader
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(onLogOut : ()-> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -65,8 +65,12 @@ fun ProfileScreen() {
 
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                ProfileMenuItem(text = "SETTINGS", icon = Icons.Default.Settings)
-                ProfileMenuItem(text = "LOG OUT", icon = Icons.Default.Logout, textColor = MaterialTheme.colorScheme.error)
+                ProfileMenuItem(text = "SETTINGS", icon = Icons.Default.Settings){
+
+                }
+                ProfileMenuItem(text = "LOG OUT", icon = Icons.Default.Logout, textColor = MaterialTheme.colorScheme.error){
+                    onLogOut()
+                }
             }
         }
 
@@ -107,9 +111,9 @@ fun ProfileScreen() {
 }
 
 @Composable
-fun ProfileMenuItem(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, textColor: Color = Color.White) {
+fun ProfileMenuItem(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, textColor: Color = Color.White, onClick : () -> Unit) {
     Surface(
-        onClick = {},
+        onClick = onClick,
         color = Color.White.copy(alpha = 0.05f),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()

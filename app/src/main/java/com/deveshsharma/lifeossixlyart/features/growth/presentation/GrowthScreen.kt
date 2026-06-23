@@ -6,6 +6,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -16,6 +20,9 @@ import com.deveshsharma.lifeossixlyart.core.presentation.components.SectionHeade
 
 @Composable
 fun GrowthScreen() {
+    var taskName by rememberSaveable { mutableStateOf("") }
+    var eventName by rememberSaveable { mutableStateOf("") }
+    var projectName by rememberSaveable { mutableStateOf("") }
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -38,7 +45,7 @@ fun GrowthScreen() {
             SanctuaryCard {
                 Text("Create New Task", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(16.dp))
-                SanctuaryTextField(value = "", onValueChange = {}, label = "TASK NAME", placeholder = "What are you working on?")
+                SanctuaryTextField(value = taskName, onValueChange = { taskName = it}, label = "TASK NAME", placeholder = "What are you working on?")
                 Spacer(modifier = Modifier.height(16.dp))
                 SanctuaryButton(text = "ADD TASK", onClick = {}, icon = Icons.Default.Add)
             }
@@ -48,7 +55,7 @@ fun GrowthScreen() {
             SanctuaryCard {
                 Text("Add New Event", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(16.dp))
-                SanctuaryTextField(value = "", onValueChange = {}, label = "EVENT NAME", placeholder = "What's the event?")
+                SanctuaryTextField(value = eventName, onValueChange = { eventName = it}, label = "EVENT NAME", placeholder = "What's the event?")
                 Spacer(modifier = Modifier.height(16.dp))
                 SanctuaryButton(text = "ADD EVENT", onClick = {})
             }
@@ -58,7 +65,7 @@ fun GrowthScreen() {
             SanctuaryCard {
                 Text("Add New Project", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(16.dp))
-                SanctuaryTextField(value = "", onValueChange = {}, label = "PROJECT NAME", placeholder = "What's this project?")
+                SanctuaryTextField(value = projectName, onValueChange = { projectName = it}, label = "PROJECT NAME", placeholder = "What's this project?")
                 Spacer(modifier = Modifier.height(16.dp))
                 SanctuaryButton(text = "ADD PROJECT", onClick = {})
             }

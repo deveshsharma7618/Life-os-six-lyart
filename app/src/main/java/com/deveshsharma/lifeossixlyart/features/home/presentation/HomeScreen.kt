@@ -1,15 +1,19 @@
 package com.deveshsharma.lifeossixlyart.features.home.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -38,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -55,6 +60,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.deveshsharma.lifeossixlyart.core.navigation.BottomNavItem
+import com.deveshsharma.lifeossixlyart.core.navigation.Screen
 import com.deveshsharma.lifeossixlyart.core.presentation.components.AppBackground
 import com.deveshsharma.lifeossixlyart.features.archive.presentation.ArchiveScreen
 import com.deveshsharma.lifeossixlyart.features.diary.presentation.DiaryScreen
@@ -63,6 +69,8 @@ import com.deveshsharma.lifeossixlyart.features.memories.presentation.MemoriesSc
 import com.deveshsharma.lifeossixlyart.features.profile.presentation.ProfileScreen
 import com.deveshsharma.lifeossixlyart.features.today.presentation.TodayScreen
 import com.deveshsharma.lifeossixlyart.ui.theme.SanctuaryGold
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,7 +99,9 @@ fun HomeScreen() {
             drawerContent = {
                 ModalDrawerSheet(
                     drawerContainerColor = Color(0xFF151714),
-                    modifier = Modifier.width(300.dp).fillMaxHeight(),
+                    modifier = Modifier.width(300.dp).fillMaxHeight().verticalScroll(
+                        rememberScrollState()
+                    ),
                     drawerShape = RoundedCornerShape(0.dp)
                 ) {
                     Column(modifier = Modifier.padding(vertical = 24.dp)) {
@@ -143,7 +153,6 @@ fun HomeScreen() {
                             )
                         }
                         
-                        Spacer(modifier = Modifier.weight(1f))
 
                         Column(
                             modifier = Modifier.padding(horizontal = 24.dp)
@@ -170,13 +179,14 @@ fun HomeScreen() {
                             },
                             icon = { Icon(profileItem.icon, contentDescription = null) },
                             colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = Color.Transparent,
+                                selectedContainerColor = Color(0xFF2A2A2A),
                                 unselectedContainerColor = Color.Transparent,
                                 selectedIconColor = MaterialTheme.colorScheme.primary,
                                 unselectedIconColor = Color.Gray,
                                 selectedTextColor = MaterialTheme.colorScheme.primary,
                                 unselectedTextColor = Color.Gray
-                            )
+                            ),
+                            shape = RoundedCornerShape(0.dp)
                         )
                     }
                 }
@@ -227,36 +237,46 @@ fun HomeScreen() {
                     }
                 },
                 bottomBar = {
-                    NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                        contentColor = MaterialTheme.colorScheme.primary,
-                        tonalElevation = 0.dp
-                    ) {
-                        val barItems = allItems.filter { it != BottomNavItem.Diary }
-                        
-                        barItems.forEachIndexed { index, item ->
-                            NavigationBarItem(
-                                icon = { Icon(item.icon, contentDescription = item.title) },
-                                label = { Text(item.title, style = MaterialTheme.typography.labelSmall) },
-                                selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
-                                onClick = {
-                                    navController.navigate(item.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                    Box(
+                        modifier = Modifier.padding(10.dp).navigationBarsPadding()
+                    ){
+                        NavigationBar(
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                            contentColor = MaterialTheme.colorScheme.primary,
+                            tonalElevation = 0.dp,
+                            modifier = Modifier
+                                .border(0.5.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp))
+                        ) {
+                            val barItems = allItems.filter { it != BottomNavItem.Diary }
+
+                            barItems.forEachIndexed { index, item ->
+                                val isSelected = (currentDestination?.hierarchy?.any { it.route == item.route } == true)
+                                val bgColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else Color.Transparent
+                                NavigationBarItem(
+                                    icon = { Icon(item.icon, contentDescription = item.title) },
+                                    label = { Text(item.title, style = MaterialTheme.typography.labelSmall) },
+                                    selected = isSelected,
+                                    onClick = {
+                                        navController.navigate(item.route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
                                         }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                    indicatorColor = Color.Transparent
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = Color.White,
+                                        selectedTextColor = Color.White,
+                                        unselectedIconColor = Color.White,
+                                        unselectedTextColor = Color.White,
+                                        indicatorColor = Color.Transparent,
+                                    ),
+                                    modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(bgColor)
                                 )
-                            )
-                        }
+                            }
+                    }
+
                     }
                 }
             ) { innerPadding ->
@@ -270,7 +290,12 @@ fun HomeScreen() {
                         composable(BottomNavItem.Diary.route) { DiaryScreen() }
                         composable(BottomNavItem.Archive.route) { ArchiveScreen() }
                         composable(BottomNavItem.Memories.route) { MemoriesScreen() }
-                        composable(BottomNavItem.Profile.route) { ProfileScreen() }
+                        composable(BottomNavItem.Profile.route) { ProfileScreen(
+                            onLogOut = {
+                                Firebase.auth.signOut()
+                                navController.navigate(Screen.Login.route)
+                            }
+                        ) }
                     }
                 }
             }
@@ -304,21 +329,20 @@ fun StatItem(label: String, value: String, valueColor: Color = Color.White, isIt
 // Posted by Gabriele Mariotti, modified by community. See post 'Timeline' for change history
 // Retrieved 2026-06-22, License - CC BY-SA 4.0
 
-fun Modifier.leftBorder(strokeWidth: Dp, color: Color) = composed(
-    factory = {
-        val density = LocalDensity.current
-        val strokeWidthPx = density.run { strokeWidth.toPx() }
-
-        Modifier.drawBehind {
-            val width = strokeWidthPx/2
-            val height = size.height
-
-            drawLine(
-                color = color,
-                start = Offset(x = width, y = 0f),
-                end = Offset(x = width , y = height),
-                strokeWidth = strokeWidthPx
-            )
-        }
+fun Modifier.leftBorder(
+    strokeWidth: Dp,
+    color: Color
+) = composed {
+    val strokeWidthPx = with(LocalDensity.current) {
+        strokeWidth.toPx()
     }
-)
+
+    drawBehind {
+        drawLine(
+            color = color,
+            start = Offset(strokeWidthPx / 2, 0f),
+            end = Offset(strokeWidthPx / 2, size.height),
+            strokeWidth = strokeWidthPx
+        )
+    }
+}

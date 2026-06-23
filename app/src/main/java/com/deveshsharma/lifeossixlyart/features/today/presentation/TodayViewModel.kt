@@ -1,4 +1,4 @@
-package com.deveshsharma.lifeossixlyart.features.home.presentation
+package com.deveshsharma.lifeossixlyart.features.today.presentation
 
 import android.content.SharedPreferences
 import android.util.Log
@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.collections.emptyList
 
 data class HomeUiState(
     val isLoading: Boolean = false,
@@ -19,7 +20,7 @@ data class HomeUiState(
     val morningThoughts: List<Thought> = emptyList()
 )
 
-class HomeViewModel : ViewModel(){
+class TodayViewModel : ViewModel(){
     val db = Firebase.firestore
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -59,14 +60,23 @@ class HomeViewModel : ViewModel(){
 
     fun loadMorningThoughts(){
         val userId = Firebase.auth.currentUser?.uid
+        if (userId == null) {
+            _uiState.value = _uiState.value.copy(isLoading = false, error = "User not authenticated")
+            return
+        }
+
         _uiState.value = _uiState.value.copy(isLoading = true)
-        db.collection(userId!!).document("MorningThoughts").addSnapshotListener { snapshot, exception ->
+        db.collection(userId).document("MorningThoughts").addSnapshotListener { snapshot, exception ->
             if (exception != null) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = exception.message)
                 return@addSnapshotListener
             }
 
-            val thoughts = snapshot?.get("thoughts") as? List<Thought> ?: emptyList()
+            val thoughtsList = snapshot?.get("thoughts") as? List<Map<String, Any>> ?: emptyList()
+            val thoughts = thoughtsList.map {
+                Thought(it["thought"] as? String ?: "", it["day"] as? String ?: "")
+            }
+            Log.d("XYZ", thoughtsList.toString())
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
                 morningThoughts = thoughts
@@ -84,6 +94,7 @@ class HomeViewModel : ViewModel(){
         db.collection(userId).document("MorningThoughts").set(
             thoughtMap
         ).addOnSuccessListener {
+            _uiState.value = _uiState.value.copy(morningThoughts = updatedThoughts)
             Log.d("HomeViewModel", "Morning thought saved successfully")
         }.addOnFailureListener { e ->
             _uiState.value = _uiState.value.copy(error = e.message)
@@ -96,6 +107,7 @@ class HomeViewModel : ViewModel(){
 
         db.collection(userId).document("MorningThoughts").set(thoughtMap)
             .addOnSuccessListener {
+                _uiState.value = _uiState.value.copy(morningThoughts = updatedThoughts)
                 Log.d("HomeViewModel", "Morning thought deleted successfully")
             }.addOnFailureListener { e ->
                 _uiState.value = _uiState.value.copy(error = e.message)

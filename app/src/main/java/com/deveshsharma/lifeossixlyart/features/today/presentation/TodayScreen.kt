@@ -1,12 +1,13 @@
 package com.deveshsharma.lifeossixlyart.features.today.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,16 +17,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.deveshsharma.lifeossixlyart.core.presentation.components.SanctuaryCard
 import com.deveshsharma.lifeossixlyart.core.presentation.components.SectionHeader
-import com.deveshsharma.lifeossixlyart.features.home.presentation.HomeViewModel
 import com.deveshsharma.lifeossixlyart.features.today.presentation.components.MetricCard
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
-import com.google.firebase.firestore.firestore
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -48,13 +47,57 @@ fun getGreeting(): String {
 
 @Composable
 fun TodayScreen() {
-    val homeViewModel: HomeViewModel = viewModel()
+    val todayViewModel: TodayViewModel = viewModel()
     val user_id = Firebase.auth.currentUser?.uid
-    var currMood = homeViewModel.moodState.collectAsState()
+    val currMood = todayViewModel.moodState.collectAsState()
     var dailyRemarks by rememberSaveable { mutableStateOf("") }
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("user_prefs", android.content.Context.MODE_PRIVATE)
-    val thoughts = homeViewModel.uiState.collectAsState()
+    val thoughts = todayViewModel.uiState.collectAsState()
+
+    todayViewModel.loadMood(sharedPreferences)
+
+    var editingThought by remember { mutableStateOf<Thought?>(null) }
+    var editedText by remember { mutableStateOf("") }
+
+    if (editingThought != null) {
+        AlertDialog(
+            onDismissRequest = { editingThought = null },
+            title = { Text("Edit Thought") },
+            text = {
+                OutlinedTextField(
+                    value = editedText,
+                    onValueChange = { editedText = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (user_id != null && editingThought != null) {
+                        val currentThoughts = thoughts.value.morningThoughts.toMutableList()
+                        val index = currentThoughts.indexOf(editingThought)
+                        if (index != -1) {
+                            currentThoughts[index] = editingThought!!.copy(thought = editedText)
+                            val thoughtMap = mapOf("thoughts" to currentThoughts)
+                            todayViewModel.db.collection(user_id).document("MorningThoughts").set(thoughtMap)
+                        }
+                    }
+                    editingThought = null
+                }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingThought = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -93,31 +136,31 @@ fun TodayScreen() {
                         label = "Energetic",
                         icon = Icons.Default.WbSunny,
                         isSelected = currMood.value == "Energetic",
-                        onClick = { homeViewModel.updateMood(sharedPreferences, "Energetic") }
+                        onClick = { todayViewModel.updateMood(sharedPreferences, "Energetic") }
                     )
                     MoodItem(
                         label = "Calm",
                         icon = Icons.Default.WaterDrop,
                         isSelected = currMood.value == "Calm",
-                        onClick = { homeViewModel.updateMood(sharedPreferences, "Calm") }
+                        onClick = { todayViewModel.updateMood(sharedPreferences, "Calm") }
                     )
                     MoodItem(
                         label = "Happy",
                         icon = Icons.Default.SentimentVerySatisfied,
                         isSelected = currMood.value == "Happy",
-                        onClick = { homeViewModel.updateMood(sharedPreferences, "Happy") }
+                        onClick = { todayViewModel.updateMood(sharedPreferences, "Happy") }
                     )
                     MoodItem(
                         label = "Anxious",
                         icon = Icons.Default.Waves,
                         isSelected = currMood.value == "Anxious",
-                        onClick = { homeViewModel.updateMood(sharedPreferences, "Anxious") }
+                        onClick = { todayViewModel.updateMood(sharedPreferences, "Anxious") }
                     )
                     MoodItem(
                         label = "Tired",
                         icon = Icons.Default.NightsStay,
                         isSelected = currMood.value == "Tired",
-                        onClick = { homeViewModel.updateMood(sharedPreferences, "Tired") }
+                        onClick = { todayViewModel.updateMood(sharedPreferences, "Tired") }
                     )
                 }
             }
@@ -170,7 +213,8 @@ fun TodayScreen() {
             Button(
                 onClick = {
                     if (user_id != null && dailyRemarks.isNotBlank()) {
-                        homeViewModel.saveMorningThought(user_id, thoughts.value.morningThoughts, dailyRemarks)
+                        todayViewModel.saveMorningThought(user_id, thoughts.value.morningThoughts, dailyRemarks)
+                        dailyRemarks = ""
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -178,27 +222,85 @@ fun TodayScreen() {
             ) {
                 Text("Save thought")
             }
-            Spacer( modifier = Modifier.height(150.dp))
         }
 
-        item{
-            if (thoughts.value.morningThoughts.isEmpty()){
-                Text("No thought saved till now")
+        item {
+            if (thoughts.value.morningThoughts.isEmpty()) {
+                Text("No thought saved till now", color = Color.Gray)
             }
         }
 
-        items(thoughts.value.morningThoughts.size) {  index ->
-            Column(
-            ) {
-                Text(thoughts.value.morningThoughts[index].thought)
-                Text(thoughts.value.morningThoughts[index].day)
+        val groupedThoughts = thoughts.value.morningThoughts
+            .sortedByDescending { it.day }
+            .groupBy { it.day }
+
+        groupedThoughts.forEach { (day, thoughtsInDay) ->
+            item {
+                Row( horizontalArrangement = Arrangement.Center){
+                    AssistChip(
+                        onClick = { },
+                        label = { Text(formatDayChip(day)) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+                            labelColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
             }
 
-
+            items(thoughtsInDay.size) { index ->
+                val thought = thoughtsInDay[index]
+                SanctuaryCard() {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = thought.thought, style = MaterialTheme.typography.bodyLarge, color = Color.White)
+                        }
+                        Row {
+                            IconButton(onClick = {
+                                editingThought = thought
+                                editedText = thought.thought
+                            }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray, modifier = Modifier.size(20.dp))
+                            }
+                            IconButton(onClick = {
+                                if (user_id != null) {
+                                    todayViewModel.deleteMorningThought(user_id, thoughts.value.morningThoughts, thought)
+                                }
+                            }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+                }
+            }
         }
 
+        item {
+            Spacer(modifier = Modifier.height(100.dp))
+        }
     }
 
+}
+
+private fun formatDayChip(day: String): String {
+    return try {
+        val today = java.time.LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val yesterday = java.time.LocalDate.now().minusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        when (day) {
+            today -> "Today"
+            yesterday -> "Yesterday"
+            else -> {
+                val date = java.time.LocalDate.parse(day)
+                date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+            }
+        }
+    } catch (e: Exception) {
+        day
+    }
 }
 
 @Composable
